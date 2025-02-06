@@ -56,7 +56,7 @@ function Get-MSAdminUsers {
         if (-Not $script:adminAccessToken){
             Get-MSAdminToken
         }
-        elseif ($script:adminAccessToken.expiry_datetime -lt (Get-Date)){
+        elseif ($script:adminAccessToken.expires_on -lt (Get-Date).ToUniversalTime()){
             Get-MSAdminToken
         }
         $headers = @{
