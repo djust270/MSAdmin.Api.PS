@@ -1,20 +1,4 @@
 function Get-MSAdminUsers {
-    [cmdletbinding()]
-    param(      
-        [Parameter(Mandatory=$false,
-        ValueFromPipelineByPropertyName=$true, 
-        ParameterSetName='ByName')]
-        [string]$DisplayName,
-        
-        [Parameter(Mandatory=$false, 
-        ValueFromPipelineByPropertyName=$true, 
-        ParameterSetName='ByUserPrincipalName')]
-        [string]$UserPrincipalName,
-
-        [Parameter(Mandatory=$false, 
-        ParameterSetName='Default')]
-        [switch]$All
-    )
     <# 
     .SYNOPSIS
         Gets a list of users from the Microsoft 365 admin center.
@@ -39,6 +23,22 @@ function Get-MSAdminUsers {
 
         This example will retrieve a list of all users from the Microsoft 365 admin center.   
     #>
+    [cmdletbinding()]
+    param(      
+        [Parameter(Mandatory=$false,
+        ValueFromPipelineByPropertyName=$true, 
+        ParameterSetName='ByName')]
+        [string]$DisplayName,
+        
+        [Parameter(Mandatory=$false, 
+        ValueFromPipelineByPropertyName=$true, 
+        ParameterSetName='ByUserPrincipalName')]
+        [string]$UserPrincipalName,
+
+        [Parameter(Mandatory=$false, 
+        ParameterSetName='Default')]
+        [switch]$All
+    )
     begin{
         Write-Verbose "Using parameter set: $($PSCmdlet.ParameterSetName)"
         switch ($PSCmdlet.ParameterSetName) {
@@ -54,10 +54,20 @@ function Get-MSAdminUsers {
         }
         $uri = 'https://admin.microsoft.com/admin/api/Users/ListUsers'
         if (-Not $script:adminAccessToken){
-            Get-MSAdminToken
+            throw "Session not authenticated. Please run 'Get-MSAdminToken' and try again."
         }
-        elseif ($script:adminAccessToken.expires_on -lt (Get-Date).ToUniversalTime()){
-            Get-MSAdminToken
+        else {
+            switch (($script:adminAccessToken.expires_on - [DateTime]::UtcNow).TotalSeconds){
+                {$_ -lt 600 -and $_ -gt 5} {
+                    # Attempt to refresh token
+                    Write-Verbose "Attempting token refresh"
+                    Get-MSAdminToken -RefreshToken $script:adminAccessToken.refresh_token
+                }
+                {$_ -lt 5} {
+                    # Acquire new access token
+                    throw "Access token is expired. Please run 'Get-MSAdminToken' and try again."
+                }
+            }
         }
         $headers = @{
             'Authorization' = "Bearer $($script:adminAccessToken.access_token)"
