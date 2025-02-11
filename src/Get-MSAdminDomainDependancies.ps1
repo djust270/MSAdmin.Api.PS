@@ -77,23 +77,14 @@ function Get-MSAdminDomainDependencies {
     }
 
     process {
-        $nextLink = $null
-        
-        do {
-            $uri = if ($nextLink) { 
-                $nextLink 
-            } else { 
-                "$baseUri`?domainName=$DomainName&kind=$kind"
-            }
-
-            $response = Invoke-RestMethod -Method Post -Uri $uri -Headers $headers
-
-            if ($response.Data.Dependencies) {
-                $response.Data.Dependencies | Write-Output
-            }
-
-            $nextLink = $response.Data.NextLink
-
-        } while ($nextLink -and -not $response.Data.IsLastPage)
+        $Uri = "$baseUri`?domainName=$DomainName&kind=$kind"
+        $response = Invoke-RestMethod -Uri $Uri -Method POST -Headers $headers
+        $response.Data.Dependencies
+        if ($response.Data.NextLink) {
+            do {
+                $response = Invoke-RestMethod -Uri $response.Data.NextLink -Method GET -Headers $headers
+                $response.Data.Dependencies
+            } while ($response.Data.NextLink)
+        }
     }
 }

@@ -19,7 +19,6 @@ function Get-MSAdminProducts {
                 }
             }
         }
-
         $headers = @{
             'Authorization' = "Bearer $($script:adminAccessToken.access_token)"
             'content-type' = 'application/json'
